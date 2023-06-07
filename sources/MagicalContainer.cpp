@@ -21,16 +21,18 @@ namespace ariel {
         if(this->sorted_elements.empty()){
             this->sorted_elements.push_back(num_ptr);
         } else if(*(this->sorted_elements.at(0)) >= *(num_ptr)){
-            this->sorted_elements.insert(this->sorted_elements.cbegin(), num_ptr);
+            this->sorted_elements.insert(this->sorted_elements.begin(), num_ptr);
         } else if(this->sorted_elements.size() == 1){
             this->sorted_elements.push_back(num_ptr);
         } else {
-            for(size_t i=0; i < this->sorted_elements.size()-1; i++) {
+            size_t i;
+            for(i=0; i < this->sorted_elements.size()-1; i++) {
                 if(*(num_ptr) >= *(this->sorted_elements.at(i)) && *(num_ptr) <= *(this->sorted_elements.at(i+1))) {
-                    this->sorted_elements.insert(this->sorted_elements.begin() + (int) i, num_ptr);
-                    return;
+                    break;
                 }
             }
+
+            this->sorted_elements.insert(this->sorted_elements.begin() + (int) i+1, num_ptr);
         }
     }
 
@@ -52,7 +54,6 @@ namespace ariel {
 
         this->elements.push_back(num_ptr);
         this->add_to_sorted(num_ptr);
-//        this->sorted_elements.insert(num);
         if (this->is_prime(num)) {
             this->prime_elements.push_back(num_ptr);
         }
@@ -66,111 +67,144 @@ namespace ariel {
                 break;
             }
         }
-        cout << "size:" << this->elements.size() << endl;
         if(num_ptr != nullptr){
             this->elements.erase(remove(this->elements.begin(), this->elements.end(), num_ptr), this->elements.end());
             this->sorted_elements.erase(remove(this->sorted_elements.begin(), this->sorted_elements.end(), num_ptr), this->sorted_elements.end());
-//        this->sorted_elements.erase(num_ptr);
             this->prime_elements.erase(remove(this->prime_elements.begin(), this->prime_elements.end(), num_ptr), this->prime_elements.end());
             free(num_ptr);
-            cout << "after free size:" << this->elements.size() << endl;
-
         } else {
             throw runtime_error("element is not exist");
         }
     }
 
 
-    /* AscendingIterator */
-    MagicalContainer::AscendingIterator::AscendingIterator(MagicalContainer& magicalContainer): mc(magicalContainer) {}
-    int MagicalContainer::AscendingIterator::operator*() const {
-        return *(*(this->it));
+    // BaseIterator
+    MagicalContainer::BaseIterator::BaseIterator(MagicalContainer& magicalContainer): mc(&magicalContainer) {}
+    int MagicalContainer::BaseIterator::operator*() const {
+        return *(this->iter.operator*());
     }
-    MagicalContainer::AscendingIterator &MagicalContainer::AscendingIterator::operator++() {
-        this->it.operator++();
+    MagicalContainer::BaseIterator &MagicalContainer::BaseIterator::operator=(BaseIterator other) {
+        if (this != &other) {
+            throw runtime_error("different iterators");
+        }
+        this->vec = other.vec;
+        this->location = other.location;
+        this->iter = other.iter;
+        this->mc = other.mc;
+        return *this;
+    }
+    MagicalContainer::BaseIterator &MagicalContainer::BaseIterator::operator++() {
+        if(this->location >= this->vec->size()) {
+            throw runtime_error("Out of bounds");
+        }
+        this->iter.operator++();
         this->location++;
         return *this;
     }
-    bool MagicalContainer::AscendingIterator::operator==(const AscendingIterator &it) const {
-        return this->it == it.it;
+    bool MagicalContainer::BaseIterator::operator==(const BaseIterator &other) const {
+        if (this->mc != other.mc) {
+            throw runtime_error("different MagicalContainer");
+        }
+
+        return this->vec == other.vec && this->location == other.location;
     }
-    bool MagicalContainer::AscendingIterator::operator!=(const AscendingIterator &it) const {
-        return !this->operator==(it);
+    bool MagicalContainer::BaseIterator::operator!=(const BaseIterator &other) const {
+        return !(this->operator==(other));
     }
-    bool MagicalContainer::AscendingIterator::operator<(AscendingIterator other) const {
-        return this->operator*() < other.operator*();
+    bool MagicalContainer::BaseIterator::operator<(BaseIterator other) const {
+        return this->location < other.location;
     }
-    bool MagicalContainer::AscendingIterator::operator>(AscendingIterator other) const {
-        return this->operator*() > other.operator*();
+    bool MagicalContainer::BaseIterator::operator>(BaseIterator other) const {
+        return this->location > other.location;
+    }
+
+    /* AscendingIterator */
+    MagicalContainer::AscendingIterator::AscendingIterator(MagicalContainer& magicalContainer): MagicalContainer::BaseIterator(magicalContainer) {
+        this->vec = &this->mc->sorted_elements;
+        this->begin();
     }
     MagicalContainer::AscendingIterator &MagicalContainer::AscendingIterator::begin() {
-        this->it = this->mc.sorted_elements.begin();
+        this->iter = this->vec->begin();
+        this->location = 0;
         return *this;
     }
     MagicalContainer::AscendingIterator &MagicalContainer::AscendingIterator::end() {
-        this->it = this->mc.sorted_elements.end();
+        this->iter = this->vec->end();
+        this->location = this->vec->size();
         return *this;
     }
 
     /* SideCrossIterator */
-    MagicalContainer::SideCrossIterator::SideCrossIterator(MagicalContainer& magicalContainer): mc(magicalContainer) {}
-    int MagicalContainer::SideCrossIterator::operator*() const {
-        return 1;
+    MagicalContainer::SideCrossIterator::SideCrossIterator(MagicalContainer& magicalContainer): MagicalContainer::BaseIterator(magicalContainer) {
+        this->vec = &this->mc->elements;
+        this->begin();
+    }
+    int MagicalContainer::SideCrossIterator::operator*() {
+        int value;
+        if (this->get_s) {
+            value = *(this->vec->at(this->s_index));
+        } else {
+            value = *(this->vec->at(this->e_index - 1));
+        }
+        return value;
     }
     MagicalContainer::SideCrossIterator &MagicalContainer::SideCrossIterator::operator++() {
+        if(this->s_index > this->e_index){
+            throw runtime_error("Out of bounds");
+        }
+        if(this->get_s) {
+            this->s_index++;
+        } else {
+            this->e_index--;
+        }
+        this->get_s = !this->get_s;
         this->location++;
+
+        if(this->s_index >= this->e_index) {
+            this->s_index = this->vec->size();
+            this->e_index = 0;
+        }
         return *this;
     }
-    bool MagicalContainer::SideCrossIterator::operator==(const SideCrossIterator &it) const {
-        return true;
+    bool MagicalContainer::SideCrossIterator::operator==(const SideCrossIterator &other) const {
+        if (this->mc != other.mc) {
+            throw runtime_error("different MagicalContainer");
+        }
+
+        return this->mc == other.mc && this->s_index == other.s_index && this->e_index == other.e_index;
     }
-    bool MagicalContainer::SideCrossIterator::operator!=(const SideCrossIterator &it) const {
-        return !this->operator==(it);
-    }
-    bool MagicalContainer::SideCrossIterator::operator<(SideCrossIterator other) const {
-        return this->operator*() < other.operator*();
-    }
-    bool MagicalContainer::SideCrossIterator::operator>(SideCrossIterator other) const {
-        return this->operator*() > other.operator*();
-    }
+
     MagicalContainer::SideCrossIterator &MagicalContainer::SideCrossIterator::begin() {
+        this->location = 0;
+
+        this->s_index = 0;
+        this->e_index = (size_t) this->vec->size();
+        this->get_s = true;
+
         return *this;
     }
     MagicalContainer::SideCrossIterator &MagicalContainer::SideCrossIterator::end() {
+        this->s_index = this->vec->size();
+        this->e_index = 0;
+
         return *this;
     }
 
 
     /* PrimeIterator */
-    MagicalContainer::PrimeIterator::PrimeIterator(MagicalContainer& magicalContainer): mc(magicalContainer) {}
-    int MagicalContainer::PrimeIterator::operator*() const {
-        return *(*(this->it));
-    }
-    MagicalContainer::PrimeIterator &MagicalContainer::PrimeIterator::operator++() {
-        this->it.operator++();
-        this->location++;
-        return *this;
-    }
-    bool MagicalContainer::PrimeIterator::operator==(const PrimeIterator &it) const {
-        return this->it == it.it;
-    }
-    bool MagicalContainer::PrimeIterator::operator!=(const PrimeIterator &it) const {
-        return !this->operator==(it);
-    }
-    bool MagicalContainer::PrimeIterator::operator<(PrimeIterator other) const {
-        return this->operator*() < other.operator*();
-    }
-    bool MagicalContainer::PrimeIterator::operator>(PrimeIterator other) const {
-        return this->operator*() > other.operator*();
+    MagicalContainer::PrimeIterator::PrimeIterator(MagicalContainer& magicalContainer): MagicalContainer::BaseIterator(magicalContainer) {
+        this->vec = &this->mc->prime_elements;
+        this->begin();
     }
     MagicalContainer::PrimeIterator &MagicalContainer::PrimeIterator::begin() {
-        this->it = this->mc.prime_elements.begin();
+        this->iter = this->vec->begin();
+        this->location = 0;
         return *this;
     }
     MagicalContainer::PrimeIterator &MagicalContainer::PrimeIterator::end() {
-        this->it = this->mc.prime_elements.end();
+        this->iter = this->vec->end();
+        this->location = this->vec->size();
+
         return *this;
     }
-
-
 }
