@@ -28,7 +28,6 @@ TEST_CASE("test MagicalContainer operations") {
     mc.removeElement(25);
     CHECK_EQ(mc.size(), 3);
 
-//    mc.removeElement(7); // not exists
     CHECK_EQ(mc.size(), 3);
 }
 
@@ -119,4 +118,89 @@ TEST_CASE("test Iterators operators") {
         numbers.pop_back();
     }
     CHECK_EQ(mc.size(), 100);
+    MagicalContainer::PrimeIterator primeIter(mc);
+    MagicalContainer::AscendingIterator ascIter(mc);
+    MagicalContainer::SideCrossIterator crossIter(mc);
+
+
+    SUBCASE("prime iterator"){
+        auto it1 = primeIter.begin();
+        auto it2 = primeIter.begin();
+
+        ++it1;
+        ++it1;
+        ++it2;
+
+        CHECK((it1 > it2) == true);
+        CHECK((it1 < it2) == false);
+
+        ++it2;
+        ++it2;
+
+        CHECK((it1 > it2) == false);
+        CHECK((it1 < it2) == true);
+
+        CHECK((it2 > it1) == true);
+        CHECK((it2 < it1) == false);
+    }
+
+    SUBCASE("ascending iterator"){
+        auto it1 = ascIter.begin();
+        auto it2 = ascIter.begin();
+
+        ++it1;
+        ++it1;
+        ++it2;
+
+        CHECK((it1 > it2) == true);
+        CHECK((it1 < it2) == false);
+
+        ++it2;
+        ++it2;
+
+        CHECK((it1 > it2) == false);
+        CHECK((it1 < it2) == true);
+
+        CHECK((it2 > it1) == true);
+        CHECK((it2 < it1) == false);
+    }
+
+    SUBCASE("side cross iterator"){
+        auto it1 = crossIter.begin();
+        auto it2 = crossIter.begin();
+
+        ++it1;
+        ++it1;
+        ++it2;
+
+        CHECK((it1 > it2) == true);
+        CHECK((it1 < it2) == false);
+
+        ++it2;
+        ++it2;
+
+        CHECK((it1 > it2) == false);
+        CHECK((it1 < it2) == true);
+
+        CHECK((it2 > it1) == true);
+        CHECK((it2 < it1) == false);
+    }
+
+    SUBCASE("errors") {
+        auto p_it = primeIter.begin();
+        auto a_it = ascIter.begin();
+        auto c_it = crossIter.begin();
+        ++p_it;
+        bool x = false;
+
+        CHECK_THROWS(x = (p_it < a_it));
+        CHECK_THROWS(x = (p_it < c_it));
+        CHECK_THROWS(x = (p_it > a_it));
+        CHECK_THROWS(x = (p_it > c_it));
+        CHECK_THROWS(x = (a_it > c_it));
+        CHECK_THROWS(x = (a_it < c_it));
+        CHECK(p_it==p_it);
+    }
+
+
 }

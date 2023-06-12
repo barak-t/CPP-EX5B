@@ -47,7 +47,6 @@ namespace ariel {
     int MagicalContainer::size() {
         return this->elements.size();
     }
-    bool comparePtrToInt(int* a, int* b) { return (*a < *b); }
 
     void MagicalContainer::addElement(int num) {
         int* num_ptr = new int(num);
@@ -79,9 +78,19 @@ namespace ariel {
 
 
     // BaseIterator
-    MagicalContainer::BaseIterator::BaseIterator(MagicalContainer& magicalContainer): mc(&magicalContainer) {}
+    MagicalContainer::BaseIterator::BaseIterator(MagicalContainer& magicalContainer, char type): mc(&magicalContainer), type(type) {}
     int MagicalContainer::BaseIterator::operator*() const {
         return *(this->iter.operator*());
+    }
+    void MagicalContainer::BaseIterator::check_same_container(BaseIterator other) const {
+        if (this->mc != other.mc) {
+            throw runtime_error("different MagicalContainer");
+        }
+    }
+    void MagicalContainer::BaseIterator::check_same_type(BaseIterator other) const {
+        if (this->type != other.type) {
+            throw runtime_error("different Iterator types");
+        }
     }
     MagicalContainer::BaseIterator &MagicalContainer::BaseIterator::operator=(BaseIterator other) {
         if (this != &other) {
@@ -102,9 +111,7 @@ namespace ariel {
         return *this;
     }
     bool MagicalContainer::BaseIterator::operator==(const BaseIterator &other) const {
-        if (this->mc != other.mc) {
-            throw runtime_error("different MagicalContainer");
-        }
+        this->check_same_container(other);
 
         return this->vec == other.vec && this->location == other.location;
     }
@@ -112,30 +119,42 @@ namespace ariel {
         return !(this->operator==(other));
     }
     bool MagicalContainer::BaseIterator::operator<(BaseIterator other) const {
+        this->check_same_container(other);
+        this->check_same_type(other);
+
         return this->location < other.location;
     }
     bool MagicalContainer::BaseIterator::operator>(BaseIterator other) const {
+        this->check_same_container(other);
+        this->check_same_type(other);
+
         return this->location > other.location;
     }
-
-    /* AscendingIterator */
-    MagicalContainer::AscendingIterator::AscendingIterator(MagicalContainer& magicalContainer): MagicalContainer::BaseIterator(magicalContainer) {
-        this->vec = &this->mc->sorted_elements;
-        this->begin();
-    }
-    MagicalContainer::AscendingIterator &MagicalContainer::AscendingIterator::begin() {
+    MagicalContainer::BaseIterator &MagicalContainer::BaseIterator::begin() {
         this->iter = this->vec->begin();
         this->location = 0;
         return *this;
     }
-    MagicalContainer::AscendingIterator &MagicalContainer::AscendingIterator::end() {
+    MagicalContainer::BaseIterator &MagicalContainer::BaseIterator::end() {
         this->iter = this->vec->end();
         this->location = this->vec->size();
         return *this;
     }
 
+    /* AscendingIterator */
+    MagicalContainer::AscendingIterator::AscendingIterator(MagicalContainer& magicalContainer): MagicalContainer::BaseIterator(magicalContainer, 'a') {
+        this->vec = &this->mc->sorted_elements;
+        this->begin();
+    }
+
+    /* PrimeIterator */
+    MagicalContainer::PrimeIterator::PrimeIterator(MagicalContainer& magicalContainer): MagicalContainer::BaseIterator(magicalContainer, 'p') {
+        this->vec = &this->mc->prime_elements;
+        this->begin();
+    }
+
     /* SideCrossIterator */
-    MagicalContainer::SideCrossIterator::SideCrossIterator(MagicalContainer& magicalContainer): MagicalContainer::BaseIterator(magicalContainer) {
+    MagicalContainer::SideCrossIterator::SideCrossIterator(MagicalContainer& magicalContainer): MagicalContainer::BaseIterator(magicalContainer, 'c') {
         this->vec = &this->mc->elements;
         this->begin();
     }
@@ -149,7 +168,7 @@ namespace ariel {
         return value;
     }
     MagicalContainer::SideCrossIterator &MagicalContainer::SideCrossIterator::operator++() {
-        if(this->s_index > this->e_index){
+        if(this->s_index > this->e_index) {
             throw runtime_error("Out of bounds");
         }
         if(this->get_s) {
@@ -161,24 +180,21 @@ namespace ariel {
         this->location++;
 
         if(this->s_index >= this->e_index) {
-            this->s_index = this->vec->size();
-            this->e_index = 0;
+            this->end();
         }
         return *this;
     }
     bool MagicalContainer::SideCrossIterator::operator==(const SideCrossIterator &other) const {
-        if (this->mc != other.mc) {
-            throw runtime_error("different MagicalContainer");
-        }
+        this->check_same_container(other);
 
-        return this->mc == other.mc && this->s_index == other.s_index && this->e_index == other.e_index;
+        return this->s_index == other.s_index && this->e_index == other.e_index;
     }
 
     MagicalContainer::SideCrossIterator &MagicalContainer::SideCrossIterator::begin() {
         this->location = 0;
 
         this->s_index = 0;
-        this->e_index = (size_t) this->vec->size();
+        this->e_index = this->vec->size();
         this->get_s = true;
 
         return *this;
@@ -186,24 +202,6 @@ namespace ariel {
     MagicalContainer::SideCrossIterator &MagicalContainer::SideCrossIterator::end() {
         this->s_index = this->vec->size();
         this->e_index = 0;
-
-        return *this;
-    }
-
-
-    /* PrimeIterator */
-    MagicalContainer::PrimeIterator::PrimeIterator(MagicalContainer& magicalContainer): MagicalContainer::BaseIterator(magicalContainer) {
-        this->vec = &this->mc->prime_elements;
-        this->begin();
-    }
-    MagicalContainer::PrimeIterator &MagicalContainer::PrimeIterator::begin() {
-        this->iter = this->vec->begin();
-        this->location = 0;
-        return *this;
-    }
-    MagicalContainer::PrimeIterator &MagicalContainer::PrimeIterator::end() {
-        this->iter = this->vec->end();
-        this->location = this->vec->size();
 
         return *this;
     }

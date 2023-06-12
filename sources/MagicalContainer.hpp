@@ -34,13 +34,17 @@ namespace ariel {
 
     class MagicalContainer::BaseIterator {
     protected:
+        char type;
         int location = 0;
         vector<int*>* vec;
         vector<int*>::iterator iter;
         MagicalContainer* mc;
+        void check_same_container(BaseIterator other) const;
+        void check_same_type(BaseIterator other) const;
 
     public:
-        BaseIterator(MagicalContainer&);
+        BaseIterator(MagicalContainer&, char type);
+        ~BaseIterator() = default;
 
         BaseIterator& operator=(BaseIterator other);
         bool operator<(BaseIterator other) const;
@@ -49,16 +53,20 @@ namespace ariel {
         bool operator!=(const BaseIterator &other) const;
         BaseIterator& operator++(); //++iterator
         int operator*() const;
+        BaseIterator& begin();
+        BaseIterator& end();
 
     };
 
     class MagicalContainer::AscendingIterator: public MagicalContainer::BaseIterator {
     public:
         AscendingIterator(MagicalContainer&);
-        AscendingIterator& begin();
-        AscendingIterator& end();
     };
 
+    class MagicalContainer::PrimeIterator: public MagicalContainer::BaseIterator {
+    public:
+        PrimeIterator(MagicalContainer&);
+    };
 
     class MagicalContainer::SideCrossIterator: public MagicalContainer::BaseIterator {
     private:
@@ -72,14 +80,5 @@ namespace ariel {
         SideCrossIterator &operator++();
         bool operator==(const SideCrossIterator &other) const;
     };
-
-
-    class MagicalContainer::PrimeIterator: public MagicalContainer::BaseIterator {
-    public:
-        PrimeIterator(MagicalContainer&);
-        PrimeIterator& begin();
-        PrimeIterator& end();
-    };
-
 }
 
